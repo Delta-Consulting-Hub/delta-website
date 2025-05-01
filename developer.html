@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>GYM Admin Login</title>
+  <style>
+    body {
+    font-family: Arial, sans-serif;
+    background: url('/assets/images/admin_login_background1.jpg') no-repeat center center fixed;
+    background-size: cover;
+    margin: 0;
+    padding: 30px;
+}
+
+/* LOGIN FORM */
+#loginForm {
+    display: block;
+    width: 100%;
+}
+
+table {
+    margin: 100px auto;
+    border-radius: 25px;
+    border: 7px solid white;
+    font-size: 25px;
+    color: white;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 20px;
+}
+
+input[type="text"], input[type="password"] {
+    height: 32px;
+    width: 270px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    border-bottom: 3px solid white;
+    color: white;
+    font-size: 25px;
+}
+
+input::placeholder {
+    font-size: 20px;
+    color: white;
+}
+
+#btn {
+    height: 30px;
+    width: 230px;
+    background-color: orange;
+    font-size: 20px;
+    cursor: pointer;
+    border: none;
+    color: black;
+}
+
+/* Password eye icon */
+.toggle-eye {
+    position: absolute;
+    right: 15px;
+    top: 10px;
+    font-size: 22px;
+    color: white;
+    cursor: pointer;
+}
+
+/* MAIN CONTENT */
+#mainContent {
+    display: none;
+}
+
+h1 {
+    text-align: center;
+    color: #fff;
+    margin-bottom: 30px;
+}
+
+.action-buttons {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 20px;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+    margin-left: 10px;
+}
+
+.refresh-btn {
+    background-color: #007bff;
+}
+
+.delete-btn {
+    background-color: #dc3545;
+}
+
+#leadsTable {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(0, 0, 0, 0.8);
+    border: 7px solid white;
+    color: white;
+    font-size: 18px;
+}
+
+#leadsTable th, #leadsTable td {
+    padding: 12px;
+    border: 1px solid #ccc;
+    text-align: left;
+}
+
+#leadsTable th {
+    background-color: #007bff;
+    color: white;
+}
+
+.day-separator {
+    border-top: 3px solid white;
+}
+
+  </style>
+</head>
+<body>
+  <!-- LOGIN FORM -->
+  <div id="loginForm">
+    <form>
+      <table>
+        <tr>
+          <td colspan="2" align="center"><img src="/assets/images/admin_logo.png" width="50%"></td>
+        </tr>
+        <tr>
+          <td align="center">
+            <input autocomplete="off" type="text" id="email" placeholder="Username">
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="position: relative;">
+            <input type="password" id="password" placeholder="Paassword">
+            <span class="toggle-eye" onclick="togglePassword()">👁️</span>
+          </td>
+        </tr>
+        <tr>
+          <td align="center">
+            <input type="submit" value="Login" id="btn">
+          </td>
+        </tr>
+      </table>
+    </form>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div id="mainContent">
+    <h1>GYM Member Leads</h1>
+    <div class="action-buttons">
+      <button id="refreshBtn" class="btn refresh-btn">Refresh</button>
+      <button id="deleteBtn" class="btn delete-btn">Delete All</button>
+    </div>
+
+    <table id="leadsTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Mobile</th>
+          <th>Message</th>
+          <th>Date</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+  document.addEventListener("DOMContentLoaded", function () {
+  const loginForm = document.querySelector("form");
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+  const mainContent = document.getElementById("mainContent");
+  const loginSection = document.getElementById("loginForm");
+  const errorMessage = document.getElementById("error-message"); // Error message container
+
+  // Hardcoded login credentials
+  const validEmail = "admin@delta.com";
+  const validPassword = "delta123";
+
+  loginForm.addEventListener("submit", function (e) {
+    e.preventDefault();  // Prevent form submission (no page reload)
+    
+    const enteredEmail = emailInput.value.trim();
+    const enteredPassword = passwordInput.value.trim();
+
+    if (enteredEmail === validEmail && enteredPassword === validPassword) {
+      loginSection.style.display = "none";
+      mainContent.style.display = "block";
+      loadLeads(); // Show leads only after successful login
+      errorMessage.style.display = "none"; // Hide error message on successful login
+    } else {
+      errorMessage.style.display = "block"; // Show error message on invalid login
+      errorMessage.textContent = "Invalid email or password!";
+    }
+  });
+
+  // Password toggle function
+  window.togglePassword = function () {
+    const type = passwordInput.getAttribute("type");
+    passwordInput.setAttribute("type", type === "password" ? "text" : "password");
+  };
+
+  // Load leads and populate the table
+  function loadLeads() {
+    const oneYear = 1000 * 60 * 60 * 24 * 365;
+    const now = new Date().getTime();
+    let leads = JSON.parse(localStorage.getItem("gymLeads")) || [];
+
+    leads = leads.filter(entry => now - entry.timestamp < oneYear);
+    localStorage.setItem("gymLeads", JSON.stringify(leads));
+    leads.sort((a, b) => b.timestamp - a.timestamp);
+
+    const tbody = document.querySelector("#leadsTable tbody");
+    tbody.innerHTML = "";
+    let lastDate = "";
+
+    leads.forEach((entry, index) => {
+      const entryDate = new Date(entry.timestamp);
+      const dateStr = entryDate.toLocaleDateString();
+      const timeStr = entryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      const row = document.createElement("tr");
+      if (index > 0 && dateStr !== lastDate) {
+        row.classList.add("day-separator");
+      }
+
+      row.innerHTML = `
+        <td>${entry.name}</td>
+        <td>${entry.email}</td>
+        <td>${entry.mobile}</td>
+        <td>${entry.message}</td>
+        <td>${dateStr}</td>
+        <td>${timeStr}</td>
+      `;
+
+      tbody.appendChild(row);
+      lastDate = dateStr;
+    });
+
+    // Refresh
+    document.getElementById("refreshBtn").addEventListener("click", () => {
+      loadLeads(); // Reload without reloading page
+    });
+
+    // Delete
+    document.getElementById("deleteBtn").addEventListener("click", () => {
+      localStorage.removeItem("gymLeads");
+      loadLeads();
+    });
+  }
+});
+
+  </script>
+</body>
+</html>
